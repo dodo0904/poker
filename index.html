@@ -207,9 +207,9 @@
                             <!-- 排名 -->
                             <th class="w-12 sticky left-0 z-30 bg-[#334155] px-3 py-2 text-sm font-medium border-2 border-[var(--border)] text-white">排名</th>
                             <!-- 名稱 -->
-                            <th class="min-w-[90px] sticky left-12 z-30 bg-[#334155] px-3 py-2 text-sm font-medium border-2 border-[var(--border)] text-white">名稱</th>
+                            <th class="min-w-[90px] sticky left-12 z-30 bg-[#334155] px-3 py-2 text-sm font-medium border-2 border-[var(--border)] text-white text-left">名稱</th>
                             <!-- 總成績 -->
-                            <th class="min-w-[80px] sticky left-[calc(90px+3rem)] z-30 bg-[#334155] px-3 py-2 text-sm font-medium border-2 border-[var(--border)] text-white text-right">總成績</th>
+                            <th class="min-w-[60px] sticky left-[calc(90px+3rem)] z-30 bg-[#334155] px-3 py-2 text-sm font-medium border-2 border-[var(--border)] text-white text-right">總成績</th>
                             <!-- 日期欄位 -->
                             <th v-for="d in historyDateColumns" :key="d" 
                                 class="min-w-[72px] px-3 py-2 text-sm font-medium border-2 border-[var(--border)] text-white text-right">
@@ -219,26 +219,27 @@
                     </thead>
                     <tbody>
                         <tr v-for="(row, idx) in historyTableRows" :key="row.playerId">
-                            <!-- 排名 -->
-                            <td class="sticky left-0 z-20 bg-[var(--card)] px-3 py-2 border-2 border-[var(--border)]">
+                            <!-- 排名 - 使用更高的 z-index 確保框線可見 -->
+                            <td class="sticky left-0 z-30 bg-[var(--card)] px-3 py-2 border-2 border-[var(--border)]"
+                                :class="{ 'shadow-[3px_0_8px_rgba(0,0,0,0.3)]': true }">
                                 <div class="text-[var(--muted)] text-center text-sm">{{ idx + 1 }}</div>
                             </td>
                             
-                            <!-- 名稱 -->
-                            <td class="sticky left-12 z-20 bg-[var(--card)] px-3 py-2 border-2 border-[var(--border)] font-medium text-sm"
+                            <!-- 名稱 - 修正 left 值並使用更高 z-index -->
+                            <td class="sticky left-[48px] z-30 bg-[var(--card)] px-3 py-2 border-2 border-[var(--border)] font-medium text-sm"
                                 :class="{ 'shadow-[3px_0_8px_rgba(0,0,0,0.3)]': true }">
                                 {{ row.playerName }}
                             </td>
                             
-                            <!-- 總成績 -->
-                            <td class="sticky left-[calc(90px+3rem)] z-20 bg-[var(--card)] px-3 py-2 border-2 border-[var(--border)] text-right font-medium text-sm"
+                            <!-- 總成績 - 修正 left 值並使用更高 z-index -->
+                            <td class="sticky left-[calc(90px+48px)] z-30 bg-[var(--card)] px-3 py-2 border-2 border-[var(--border)] text-right font-medium text-sm"
                                 :class="[pnlClass(row.totalPnl), pnlIntensityClass(row.totalPnl), { 'shadow-[3px_0_8px_rgba(0,0,0,0.3)]': true }]">
                                 {{ formatPnl(row.totalPnl) }}
                             </td>
                             
-                            <!-- 日期欄位 -->
+                            <!-- 日期欄位 - 使用較低 z-index -->
                             <td v-for="d in historyDateColumns" :key="d" 
-                                class="px-3 py-2 text-sm border-2 border-[var(--border)] text-right font-mono"
+                                class="px-3 py-2 text-sm border-2 border-[var(--border)] text-right font-mono z-10"
                                 :class="row.byDate[d] != null ? pnlClass(row.byDate[d]) : ''">
                                 {{ row.byDate[d] != null ? formatPnl(row.byDate[d]) : '' }}
                             </td>
