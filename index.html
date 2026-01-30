@@ -9,229 +9,247 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { font-family: 'Noto Sans TC', sans-serif; }
-        .card-shadow { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-        .card-shadow:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
-        .tab-active { border-bottom: 3px solid #6366f1; color: #6366f1; }
-        .pnl-positive { color: #059669; }
-        .pnl-negative { color: #dc2626; }
-        .pnl-zero { color: #6b7280; }
+        :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f1f5f9; --muted: #94a3b8; --accent: #22d3ee; --positive: #34d399; --negative: #f87171; }
+        .card-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .card-shadow:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
+        .tab-active { border-bottom: 2px solid var(--accent); color: var(--accent); }
+        .pnl-positive { color: var(--positive); }
+        .pnl-negative { color: var(--negative); }
+        .pnl-zero { color: var(--muted); }
         .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
-        /* P&L intensity: larger absolute value = deeper color */
         .pnl-intensity-0 { opacity: 0.55; }
         .pnl-intensity-1 { opacity: 0.75; }
         .pnl-intensity-2 { opacity: 0.9; }
         .pnl-intensity-3 { opacity: 1; font-weight: 700; }
         .sheet-table { border-collapse: collapse; min-width: 100%; }
-        .sheet-table th, .sheet-table td { border: 1px solid #e2e8f0; padding: 6px 8px; font-size: 12px; white-space: nowrap; }
-        .sheet-table th { background: #f1f5f9; font-weight: 600; color: #475569; }
-        .sheet-table .sticky-col-name { position: sticky; left: 0; background: #fff; z-index: 2; box-shadow: 2px 0 4px rgba(0,0,0,0.06); min-width: 90px; max-width: 110px; }
-        .sheet-table .sticky-col-total { position: sticky; left: 0; background: #f8fafc; z-index: 2; box-shadow: 2px 0 4px rgba(0,0,0,0.06); min-width: 72px; }
-        .sheet-table thead th.sticky-col-name { background: #f1f5f9; z-index: 3; }
-        .sheet-table thead th.sticky-col-total { background: #e2e8f0; z-index: 3; }
-        .sheet-table tbody td.sticky-col-name { background: #fff; }
-        .sheet-table tbody td.sticky-col-total { background: #f8fafc; }
-        .sheet-table .round-group { background: #f8fafc; }
-        .sheet-table input.sheet-input { width: 56px; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; text-align: center; }
+        .sheet-table th, .sheet-table td { border: 1px solid var(--border); padding: 6px 8px; font-size: 12px; white-space: nowrap; }
+        .sheet-table th { background: #334155; font-weight: 600; color: var(--text); }
+        .sheet-table .sticky-col-name { position: sticky; left: 0; background: var(--card); z-index: 2; box-shadow: 2px 0 8px rgba(0,0,0,0.2); min-width: 90px; max-width: 110px; }
+        .sheet-table .sticky-col-total { position: sticky; left: 0; background: #0f172a; z-index: 2; box-shadow: 2px 0 8px rgba(0,0,0,0.2); min-width: 72px; }
+        .sheet-table thead th.sticky-col-name { background: #334155; z-index: 3; }
+        .sheet-table thead th.sticky-col-total { background: #334155; z-index: 3; }
+        .sheet-table tbody td.sticky-col-name { background: var(--card); }
+        .sheet-table tbody td.sticky-col-total { background: #0f172a; }
+        .sheet-table .round-group { background: #1e293b; }
+        .sheet-table input.sheet-input { width: 56px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; text-align: center; background: var(--bg); color: var(--text); }
         .sheet-table .base-btn { width: 24px; height: 24px; padding: 0; border-radius: 4px; font-size: 14px; line-height: 1; }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-100 min-h-screen">
+<body class="bg-[var(--bg)] text-[var(--text)] min-h-screen">
     <div id="app" class="max-w-lg mx-auto pb-24">
         <!-- Header -->
-        <header class="bg-white/90 backdrop-blur shadow-sm sticky top-0 z-50 border-b border-slate-200">
+        <header class="bg-[var(--card)] border-b border-[var(--border)] sticky top-0 z-50 card-shadow">
             <div class="px-4 py-3">
-                <h1 class="text-xl font-bold text-slate-800 text-center">🃏Poker龍虎榜</h1>
+                <h1 class="text-xl font-bold text-center tracking-tight">Poker 龍虎榜</h1>
             </div>
-            <!-- Tabs -->
-            <div class="flex border-t border-slate-100">
+            <div class="flex border-t border-[var(--border)]">
                 <button v-for="tab in tabs" :key="tab.id"
                     @click="currentTab = tab.id"
-                    :class="currentTab === tab.id ? 'tab-active' : 'text-slate-500'"
+                    :class="currentTab === tab.id ? 'tab-active' : 'text-[var(--muted)]'"
                     class="flex-1 py-3 text-sm font-medium transition-colors">
                     {{ tab.label }}
                 </button>
             </div>
         </header>
 
-        <!-- ========== 今日對局（與 Google Sheet 相同表格形式）========== -->
-        <main v-show="currentTab === 'session'" class="px-2 py-4">
-            <div class="flex items-center justify-between mb-2 px-1">
-                <h2 class="text-base font-semibold text-slate-800">今日對局</h2>
-                <button v-if="session.rounds.length < 5" @click="addRound"
-                    class="px-3 py-1.5 rounded-lg bg-indigo-500 text-white text-sm font-medium">+ 新增一局</button>
+        <!-- ========== 今日對局：開始 → 選擇玩家 → 表格（<> 轉頁）========== -->
+        <main v-show="currentTab === 'session'" class="px-4 py-6">
+            <!-- Step 1: 開始 -->
+            <div v-if="sessionStep === 'start'" class="space-y-6">
+                <p v-if="players.length === 0" class="text-[var(--muted)] text-sm">尚未新增玩家，請先到「玩家管理」新增。</p>
+                <button v-else @click="sessionStep = 'select'"
+                    class="w-full py-4 rounded-xl font-semibold bg-[var(--accent)] text-[var(--bg)] hover:opacity-90 transition-opacity">
+                    開始對局
+                </button>
             </div>
-            <p v-if="players.length === 0" class="text-sm text-amber-600 py-2 px-1">尚未新增玩家，請先到「玩家管理」新增。</p>
-            <div v-else class="bg-white rounded-xl card-shadow overflow-x-auto">
-                <table class="sheet-table">
-                    <thead>
-                        <tr>
-                            <th class="sticky-col-name text-left">Daily Summary</th>
-                            <th class="sticky-col-total text-right font-medium" :class="pnlClass(sessionSummaryRow.dailyTotal)">{{ formatPnl(sessionSummaryRow.dailyTotal) }}</th>
-                            <template v-for="(r, ri) in session.rounds" :key="ri">
-                                <th colspan="4" class="round-group text-center">Round {{ ri + 1 }}</th>
-                            </template>
-                        </tr>
-                        <tr>
-                            <th class="sticky-col-name text-left">Player Name</th>
-                            <th class="sticky-col-total text-right">Daily Total</th>
-                            <template v-for="(r, ri) in session.rounds" :key="'h' + ri">
+            <!-- Step 2: 選擇玩家（A–Z 排序） -->
+            <div v-else-if="sessionStep === 'select'" class="space-y-4">
+                <h2 class="text-sm font-semibold text-[var(--muted)]">選擇今日玩家</h2>
+                <div class="bg-[var(--card)] rounded-xl border border-[var(--border)] divide-y divide-[var(--border)] overflow-hidden">
+                    <label v-for="player in playersSortedAZ" :key="player.id"
+                        class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/5 transition-colors">
+                        <input type="checkbox" :value="player.id" v-model="sessionSelectedPlayerIds"
+                            class="rounded border-[var(--border)] text-[var(--accent)] bg-transparent">
+                        <span class="flex-1">{{ player.name }}</span>
+                    </label>
+                </div>
+                <div class="flex gap-3">
+                    <button @click="sessionStep = 'start'" class="flex-1 py-3 rounded-xl border border-[var(--border)] text-[var(--muted)] font-medium">返回</button>
+                    <button @click="confirmSessionPlayers" :disabled="sessionSelectedPlayerIds.length === 0"
+                        class="flex-1 py-3 rounded-xl font-semibold bg-[var(--accent)] text-[var(--bg)] disabled:opacity-50 disabled:cursor-not-allowed">
+                        進入對局
+                    </button>
+                </div>
+            </div>
+            <!-- Step 3: 表格（只顯示當前局，<> 轉頁） -->
+            <div v-else class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="goPrevRound" :disabled="currentRoundIndex === 0"
+                            class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center font-bold text-[var(--muted)] disabled:opacity-40">‹</button>
+                        <span class="text-sm font-medium">Round {{ currentRoundIndex + 1 }} / {{ session.rounds.length }}</span>
+                        <button type="button" @click="goNextRound" :disabled="currentRoundIndex >= session.rounds.length - 1"
+                            class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center font-bold text-[var(--muted)] disabled:opacity-40">›</button>
+                    </div>
+                    <button v-if="session.rounds.length < 5" @click="addRound"
+                        class="px-3 py-1.5 rounded-lg bg-[var(--accent)] text-[var(--bg)] text-sm font-medium">+ 新增一局</button>
+                </div>
+                <div class="bg-[var(--card)] rounded-xl border border-[var(--border)] overflow-x-auto">
+                    <table class="sheet-table">
+                        <thead>
+                            <tr>
+                                <th class="sticky-col-name text-left">Daily Summary</th>
+                                <th class="sticky-col-total text-right font-medium" :class="pnlClass(sessionSummaryRow.dailyTotal)">{{ formatPnl(sessionSummaryRow.dailyTotal) }}</th>
+                                <th colspan="4" class="round-group text-center">Round {{ currentRoundIndex + 1 }}</th>
+                            </tr>
+                            <tr>
+                                <th class="sticky-col-name text-left">Player Name</th>
+                                <th class="sticky-col-total text-right">Daily Total</th>
                                 <th class="round-group w-14">底數</th>
                                 <th class="round-group w-20">Total Chips</th>
                                 <th class="round-group w-20">Chips P&L</th>
                                 <th class="round-group w-16">P&L</th>
-                            </template>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="player in players" :key="player.id">
-                            <td class="sticky-col-name font-medium text-slate-800 truncate" :title="player.name">
-                                {{ player.name }}
-                                <span v-if="!player.isRegular" class="text-amber-600 text-xs">(一次性)</span>
-                            </td>
-                            <td class="sticky-col-total text-right font-medium" :class="[pnlClass(getDailyTotalForPlayer(player.id)), pnlIntensityClass(getDailyTotalForPlayer(player.id))]">
-                                {{ formatPnl(getDailyTotalForPlayer(player.id)) }}
-                            </td>
-                            <template v-for="(round, ri) in session.rounds" :key="ri">
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="player in playersSortedAZ" :key="player.id">
+                                <td class="sticky-col-name font-medium truncate" :title="player.name">{{ player.name }}</td>
+                                <td class="sticky-col-total text-right font-medium" :class="[pnlClass(getDailyTotalForPlayer(player.id)), pnlIntensityClass(getDailyTotalForPlayer(player.id))]">
+                                    {{ formatPnl(getDailyTotalForPlayer(player.id)) }}
+                                </td>
                                 <td class="round-group text-center">
                                     <span class="inline-flex items-center gap-0.5">
-                                        <button type="button" class="base-btn bg-slate-100 text-slate-600 hover:bg-slate-200" @click="setBaseForRound(ri, player.id, getBaseForRound(ri, player.id) - 1)">−</button>
-                                        <span class="w-7 inline-block text-center font-mono">{{ getBaseForRound(ri, player.id) }}</span>
-                                        <button type="button" class="base-btn bg-slate-100 text-slate-600 hover:bg-slate-200" @click="setBaseForRound(ri, player.id, getBaseForRound(ri, player.id) + 1)">+</button>
+                                        <button type="button" class="base-btn bg-[var(--border)] text-[var(--text)] hover:bg-[var(--accent)] hover:text-[var(--bg)]" @click="setBaseForRound(currentRoundIndex, player.id, getBaseForRound(currentRoundIndex, player.id) - 1)">−</button>
+                                        <span class="w-7 inline-block text-center font-mono">{{ getBaseForRound(currentRoundIndex, player.id) }}</span>
+                                        <button type="button" class="base-btn bg-[var(--border)] text-[var(--text)] hover:bg-[var(--accent)] hover:text-[var(--bg)]" @click="setBaseForRound(currentRoundIndex, player.id, getBaseForRound(currentRoundIndex, player.id) + 1)">+</button>
                                     </span>
                                 </td>
                                 <td class="round-group">
                                     <input type="number" step="any" min="0" class="sheet-input w-full max-w-[72px]"
-                                        :value="getChipsForRound(ri, player.id)"
-                                        @input="e => setChipsForRound(ri, player.id, e.target.value)"
+                                        :value="getChipsForRound(currentRoundIndex, player.id)"
+                                        @input="e => setChipsForRound(currentRoundIndex, player.id, e.target.value)"
                                         placeholder="0">
                                 </td>
-                                <td class="round-group text-right font-mono text-sm" :class="pnlClass(getChipsPnlForRound(ri, player.id))">
-                                    {{ formatChipsPnl(getChipsPnlForRound(ri, player.id)) }}
+                                <td class="round-group text-right font-mono text-sm" :class="pnlClass(getChipsPnlForRound(currentRoundIndex, player.id))">
+                                    {{ formatChipsPnl(getChipsPnlForRound(currentRoundIndex, player.id)) }}
                                 </td>
-                                <td class="round-group text-right font-mono font-medium" :class="[pnlClass(getPnlForRound(ri, player.id)), pnlIntensityClass(getPnlForRound(ri, player.id))]">
-                                    {{ formatPnl(getPnlForRound(ri, player.id)) }}
+                                <td class="round-group text-right font-mono font-medium" :class="[pnlClass(getPnlForRound(currentRoundIndex, player.id)), pnlIntensityClass(getPnlForRound(currentRoundIndex, player.id))]">
+                                    {{ formatPnl(getPnlForRound(currentRoundIndex, player.id)) }}
                                 </td>
-                            </template>
-                        </tr>
-                    </tbody>
-                </table>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p v-if="sessionSummaryRow.dailyTotal != null && Math.abs(sessionSummaryRow.dailyTotal) > 0.01" class="text-xs text-[var(--negative)]">⚠ Daily Total 應為 0，請檢查籌碼或底數</p>
+                <button @click="saveSessionToHistory"
+                    :disabled="!canSaveSession"
+                    class="w-full py-3 rounded-xl font-semibold bg-[var(--accent)] text-[var(--bg)] disabled:opacity-50 disabled:cursor-not-allowed">
+                    儲存今日記錄並清空本局
+                </button>
             </div>
-            <p v-if="sessionSummaryRow.dailyTotal != null && Math.abs(sessionSummaryRow.dailyTotal) > 0.01" class="text-xs text-red-600 mt-2 px-1">⚠ Daily Total 應為 0，請檢查籌碼或底數</p>
-            <button @click="saveSessionToHistory"
-                :disabled="!canSaveSession"
-                class="w-full mt-4 py-3 rounded-xl font-medium bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
-                儲存今日記錄並清空本局
-            </button>
         </main>
 
-        <!-- ========== 歷史記錄 ========== -->
+        <!-- ========== 歷史記錄（排名／名稱／總成績／date 欄）========== -->
         <main v-show="currentTab === 'history'" class="px-4 py-4 space-y-4">
             <!-- Filters -->
-            <div class="bg-white rounded-2xl p-4 card-shadow space-y-3">
+            <div class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4 space-y-3">
                 <div>
-                    <label class="text-xs text-slate-500">年份</label>
-                    <select v-model="historyYear" class="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                    <label class="text-xs text-[var(--muted)]">年份</label>
+                    <select v-model="historyYear" class="w-full mt-1 px-3 py-2 border border-[var(--border)] rounded-lg text-sm bg-[var(--bg)] text-[var(--text)]">
                         <option value="all">全部</option>
                         <option v-for="y in historyYears" :key="y" :value="y">{{ y }}</option>
                     </select>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-500">玩家類型</label>
-                    <select v-model="historyPlayerType" class="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                    <label class="text-xs text-[var(--muted)]">玩家類型</label>
+                    <select v-model="historyPlayerType" class="w-full mt-1 px-3 py-2 border border-[var(--border)] rounded-lg text-sm bg-[var(--bg)] text-[var(--text)]">
                         <option value="all">全部</option>
-                        <option value="regular">長期玩家</option>
-                        <option value="oneTime">一次性玩家</option>
+                        <option value="active">Active</option>
+                        <option value="notActive">Inactive</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Total score ranking -->
-            <div class="bg-white rounded-2xl p-4 card-shadow">
-                <h3 class="text-sm font-semibold text-slate-600 mb-3">總分排名（依篩選）</h3>
-                <div class="space-y-2">
-                    <div v-for="(item, idx) in historyRanking" :key="item.playerId"
-                        class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                        <span class="text-slate-500 w-6">{{ idx + 1 }}</span>
-                        <span class="flex-1 text-slate-800">{{ item.playerName }}</span>
-                        <span :class="[pnlClass(item.totalPnl), pnlIntensityClass(item.totalPnl)]">{{ formatPnl(item.totalPnl) }}</span>
-                    </div>
-                </div>
-                <p v-if="historyRanking.length === 0" class="text-sm text-slate-400 py-2">尚無記錄</p>
-            </div>
-
-            <!-- Record list by date -->
-            <div class="bg-white rounded-2xl p-4 card-shadow">
-                <h3 class="text-sm font-semibold text-slate-600 mb-3">按日期</h3>
-                <div class="space-y-3">
-                    <div v-for="group in historyByDate" :key="group.date" class="border-b border-slate-100 pb-3 last:border-0">
-                        <div class="text-xs font-medium text-slate-500 mb-2">{{ group.date }}</div>
-                        <div class="space-y-1">
-                            <div v-for="entry in group.entries" :key="entry.id"
-                                class="flex justify-between text-sm">
-                                <span class="text-slate-700">{{ entry.playerName }}</span>
-                                <span :class="[pnlClass(entry.pnl), pnlIntensityClass(entry.pnl)]">{{ formatPnl(entry.pnl) }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <p v-if="historyByDate.length === 0" class="text-sm text-slate-400 py-2">尚無記錄</p>
+            <!-- Table: 排名 | Active | 名稱 | 總成績 | date columns -->
+            <div class="bg-[var(--card)] rounded-xl border border-[var(--border)] overflow-x-auto">
+                <table class="sheet-table">
+                    <thead>
+                        <tr>
+                            <th class="w-12">排名</th>
+                            <th class="w-14">Active</th>
+                            <th class="min-w-[90px] sticky left-0 bg-[#334155] z-[3]">名稱</th>
+                            <th class="min-w-[80px] text-right">總成績</th>
+                            <th v-for="d in historyDateColumns" :key="d" class="min-w-[72px] text-right">{{ formatDateShort(d) }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(row, idx) in historyTableRows" :key="row.playerId">
+                            <td class="text-[var(--muted)]">{{ idx + 1 }}</td>
+                            <td class="text-center">{{ row.isActive ? 'Y' : 'N' }}</td>
+                            <td class="font-medium sticky left-0 bg-[var(--card)] z-[2]" :style="{ boxShadow: '2px 0 8px rgba(0,0,0,0.2)' }">{{ row.playerName }}</td>
+                            <td class="text-right font-medium" :class="[pnlClass(row.totalPnl), pnlIntensityClass(row.totalPnl)]">{{ formatPnl(row.totalPnl) }}</td>
+                            <td v-for="d in historyDateColumns" :key="d" class="text-right font-mono text-sm" :class="row.byDate[d] != null ? pnlClass(row.byDate[d]) : ''">{{ row.byDate[d] != null ? formatPnl(row.byDate[d]) : '' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p v-if="historyTableRows.length === 0" class="text-sm text-[var(--muted)] py-6 text-center">尚無記錄</p>
             </div>
         </main>
 
         <!-- ========== 玩家管理 ========== -->
         <main v-show="currentTab === 'players'" class="px-4 py-4 space-y-4">
-            <div class="bg-white rounded-2xl p-4 card-shadow">
-                <h3 class="text-sm font-semibold text-slate-600 mb-3">新增玩家</h3>
+            <div class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4">
+                <h3 class="text-sm font-semibold text-[var(--muted)] mb-3">新增玩家</h3>
                 <div class="flex gap-2 mb-2">
                     <input v-model.trim="newPlayerName" type="text" placeholder="玩家名稱"
-                        class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                        class="flex-1 px-3 py-2 border border-[var(--border)] rounded-lg text-sm bg-[var(--bg)] text-[var(--text)]"
                         @keyup.enter="addPlayer">
                     <button @click="addPlayer" :disabled="!newPlayerName"
-                        class="px-4 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium disabled:opacity-50">新增</button>
+                        class="px-4 py-2 rounded-lg bg-[var(--accent)] text-[var(--bg)] text-sm font-medium disabled:opacity-50">新增</button>
                 </div>
-                <label class="flex items-center gap-2 text-sm text-slate-600">
-                    <input type="checkbox" v-model="newPlayerIsRegular" class="rounded border-slate-300 text-indigo-600">
-                    長期玩家
+                <label class="flex items-center gap-2 text-sm text-[var(--muted)]">
+                    <input type="checkbox" v-model="newPlayerIsRegular" class="rounded border-[var(--border)] text-[var(--accent)] bg-transparent">
+                    Active
                 </label>
             </div>
 
-            <div class="bg-white rounded-2xl p-4 card-shadow">
-                <h3 class="text-sm font-semibold text-slate-600 mb-3">玩家列表</h3>
-                <div class="space-y-2">
-                    <div v-for="player in players" :key="player.id"
-                        class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+            <div class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4">
+                <h3 class="text-sm font-semibold text-[var(--muted)] mb-3">玩家列表</h3>
+                <div class="space-y-0 divide-y divide-[var(--border)]">
+                    <div v-for="player in playersSortedAZ" :key="player.id"
+                        class="flex items-center justify-between py-3">
                         <div v-if="editingPlayerId !== player.id" class="flex-1 min-w-0">
-                            <span class="text-slate-800">{{ player.name }}</span>
-                            <span :class="player.isRegular ? 'text-indigo-600' : 'text-amber-600'" class="text-xs ml-2">
-                                {{ player.isRegular ? '長期' : '一次性' }}
+                            <span>{{ player.name }}</span>
+                            <span :class="player.isRegular ? 'text-[var(--accent)]' : 'text-[var(--muted)]'" class="text-xs ml-2">
+                                {{ player.isRegular ? 'Active' : 'Inactive' }}
                             </span>
                         </div>
                         <div v-else class="flex-1 flex items-center gap-2">
-                            <input v-model.trim="editPlayerName" type="text" class="flex-1 px-2 py-1 border rounded text-sm"
+                            <input v-model.trim="editPlayerName" type="text" class="flex-1 px-2 py-1 border border-[var(--border)] rounded text-sm bg-[var(--bg)] text-[var(--text)]"
                                 @keyup.enter="saveEditPlayer">
-                            <label class="flex items-center gap-1 text-xs whitespace-nowrap">
-                                <input type="checkbox" v-model="editPlayerIsRegular" class="rounded">長期
+                            <label class="flex items-center gap-1 text-xs whitespace-nowrap text-[var(--muted)]">
+                                <input type="checkbox" v-model="editPlayerIsRegular" class="rounded">Active
                             </label>
                         </div>
                         <div class="flex gap-1">
                             <template v-if="editingPlayerId === player.id">
-                                <button @click="saveEditPlayer" class="px-2 py-1 text-xs rounded bg-indigo-500 text-white">儲存</button>
-                                <button @click="cancelEditPlayer" class="px-2 py-1 text-xs rounded bg-slate-200 text-slate-700">取消</button>
+                                <button @click="saveEditPlayer" class="px-2 py-1 text-xs rounded bg-[var(--accent)] text-[var(--bg)]">儲存</button>
+                                <button @click="cancelEditPlayer" class="px-2 py-1 text-xs rounded border border-[var(--border)] text-[var(--muted)]">取消</button>
                             </template>
                             <template v-else>
-                                <button @click="startEditPlayer(player)" class="px-2 py-1 text-xs rounded bg-slate-100 text-slate-600">編輯</button>
+                                <button @click="startEditPlayer(player)" class="px-2 py-1 text-xs rounded border border-[var(--border)] text-[var(--muted)]">編輯</button>
                             </template>
                         </div>
                     </div>
                 </div>
-                <p v-if="players.length === 0" class="text-sm text-slate-400 py-2">尚未新增玩家</p>
+                <p v-if="players.length === 0" class="text-sm text-[var(--muted)] py-4">尚未新增玩家</p>
             </div>
         </main>
 
-        <!-- Firebase status (optional, small) -->
+        <!-- Firebase status -->
         <div v-if="firebase.statusText" class="fixed bottom-2 left-2 right-2 max-w-lg mx-auto text-center">
-            <span class="text-xs text-slate-400">{{ firebase.statusText }}</span>
+            <span class="text-xs text-[var(--muted)]">{{ firebase.statusText }}</span>
         </div>
     </div>
 
@@ -276,6 +294,8 @@
                         { id: 'history', label: '歷史記錄' },
                         { id: 'players', label: '玩家管理' }
                     ],
+                    sessionStep: 'start',
+                    sessionSelectedPlayerIds: [],
                     players: [],
                     session: {
                         rounds: [
@@ -349,48 +369,73 @@
                     }
                     return Array.from(set).sort((a, b) => Number(b) - Number(a));
                 },
+                playersSortedAZ() {
+                    return [...this.players].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-HK'));
+                },
                 filteredHistory() {
                     let list = this.gameHistory.slice();
                     if (this.historyYear !== 'all') {
                         list = list.filter(r => r.date && r.date.startsWith(this.historyYear));
                     }
-                    if (this.historyPlayerType === 'regular') {
+                    if (this.historyPlayerType === 'active') {
                         list = list.filter(r => r.isRegular === true);
-                    } else if (this.historyPlayerType === 'oneTime') {
+                    } else if (this.historyPlayerType === 'notActive') {
                         list = list.filter(r => r.isRegular === false);
                     }
                     return list;
                 },
-                historyRanking() {
+                historyDateColumns() {
+                    const set = new Set();
+                    for (const r of this.filteredHistory) {
+                        if (r.date) set.add(r.date);
+                    }
+                    return Array.from(set).sort((a, b) => b.localeCompare(a));
+                },
+                historyTableRows() {
                     const byPlayer = new Map();
                     for (const record of this.filteredHistory) {
                         const id = record.playerId;
                         const name = this.getPlayerName(id) || record.playerName || id;
-                        const prev = byPlayer.get(id) || { playerId: id, playerName: name, totalPnl: 0 };
-                        prev.totalPnl += record.pnl ?? 0;
-                        prev.playerName = name;
-                        byPlayer.set(id, prev);
+                        const isActive = !!record.isRegular;
+                        let row = byPlayer.get(id);
+                        if (!row) {
+                            row = { playerId: id, playerName: name, isActive, totalPnl: 0, byDate: {} };
+                            byPlayer.set(id, row);
+                        }
+                        const pnl = record.pnl ?? 0;
+                        row.totalPnl += pnl;
+                        row.byDate[record.date] = pnl;
                     }
                     return Array.from(byPlayer.values()).sort((a, b) => b.totalPnl - a.totalPnl);
-                },
-                historyByDate() {
-                    const byDate = new Map();
-                    for (const record of this.filteredHistory) {
-                        const d = record.date || '';
-                        if (!byDate.has(d)) byDate.set(d, { date: d, entries: [] });
-                        byDate.get(d).entries.push({
-                            id: record.id || record.date + record.playerId,
-                            playerName: this.getPlayerName(record.playerId) || record.playerName,
-                            pnl: record.pnl ?? 0
-                        });
-                    }
-                    return Array.from(byDate.values()).sort((a, b) => b.date.localeCompare(a.date));
                 }
             },
             methods: {
                 getPlayerName(pid) {
                     const p = this.players.find(x => x.id === pid);
                     return p ? p.name : (pid || '');
+                },
+                confirmSessionPlayers() {
+                    if (this.sessionSelectedPlayerIds.length === 0) return;
+                    const round = this.session.rounds[0] || { selectedPlayerIds: [], base: {}, chips: {} };
+                    round.selectedPlayerIds = [...this.sessionSelectedPlayerIds];
+                    round.base = {};
+                    round.chips = {};
+                    for (const pid of this.sessionSelectedPlayerIds) {
+                        round.base[pid] = 1;
+                    }
+                    if (!this.session.rounds[0]) this.session.rounds[0] = round;
+                    this.currentRoundIndex = 0;
+                    this.sessionStep = 'table';
+                    this.updateSessionRemote();
+                    this.saveSessionToLocal();
+                },
+                formatDateShort(dateStr) {
+                    if (!dateStr) return '';
+                    const [, m, d] = dateStr.split('-');
+                    const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+                    const mi = parseInt(m, 10) - 1;
+                    const day = parseInt(d, 10) || d;
+                    return (months[mi] || m) + day + '日';
                 },
                 getBaseForRound(ri, pid) {
                     const round = this.session.rounds[ri];
@@ -462,7 +507,11 @@
                 },
                 addRound() {
                     if (this.session.rounds.length >= 5) return;
-                    this.session.rounds.push({ selectedPlayerIds: [], base: {}, chips: {} });
+                    const prev = this.session.rounds[this.currentRoundIndex];
+                    const ids = prev ? [...(prev.selectedPlayerIds || [])] : [];
+                    const base = {};
+                    for (const pid of ids) base[pid] = 1;
+                    this.session.rounds.push({ selectedPlayerIds: ids, base, chips: {} });
                     this.currentRoundIndex = this.session.rounds.length - 1;
                     this.updateSessionRemote();
                     this.saveSessionToLocal();
@@ -517,6 +566,8 @@
                     }
                     this.session = { rounds: [{ selectedPlayerIds: [], base: {}, chips: {} }] };
                     this.currentRoundIndex = 0;
+                    this.sessionStep = 'start';
+                    this.sessionSelectedPlayerIds = [];
                     if (this.firebase.ready && this._sessionDocRef) {
                         try {
                             await setDoc(this._sessionDocRef, { session: this.session, updatedAt: serverTimestamp() }, { merge: true });
