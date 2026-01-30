@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>撲克對局記錄</title>
+    <title>Poker龍虎榜</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -22,6 +22,18 @@
         .pnl-intensity-1 { opacity: 0.75; }
         .pnl-intensity-2 { opacity: 0.9; }
         .pnl-intensity-3 { opacity: 1; font-weight: 700; }
+        .sheet-table { border-collapse: collapse; min-width: 100%; }
+        .sheet-table th, .sheet-table td { border: 1px solid #e2e8f0; padding: 6px 8px; font-size: 12px; white-space: nowrap; }
+        .sheet-table th { background: #f1f5f9; font-weight: 600; color: #475569; }
+        .sheet-table .sticky-col-name { position: sticky; left: 0; background: #fff; z-index: 2; box-shadow: 2px 0 4px rgba(0,0,0,0.06); min-width: 90px; max-width: 110px; }
+        .sheet-table .sticky-col-total { position: sticky; left: 0; background: #f8fafc; z-index: 2; box-shadow: 2px 0 4px rgba(0,0,0,0.06); min-width: 72px; }
+        .sheet-table thead th.sticky-col-name { background: #f1f5f9; z-index: 3; }
+        .sheet-table thead th.sticky-col-total { background: #e2e8f0; z-index: 3; }
+        .sheet-table tbody td.sticky-col-name { background: #fff; }
+        .sheet-table tbody td.sticky-col-total { background: #f8fafc; }
+        .sheet-table .round-group { background: #f8fafc; }
+        .sheet-table input.sheet-input { width: 56px; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; text-align: center; }
+        .sheet-table .base-btn { width: 24px; height: 24px; padding: 0; border-radius: 4px; font-size: 14px; line-height: 1; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-100 min-h-screen">
@@ -29,7 +41,7 @@
         <!-- Header -->
         <header class="bg-white/90 backdrop-blur shadow-sm sticky top-0 z-50 border-b border-slate-200">
             <div class="px-4 py-3">
-                <h1 class="text-xl font-bold text-slate-800 text-center">🃏 撲克對局記錄</h1>
+                <h1 class="text-xl font-bold text-slate-800 text-center">🃏Poker龍虎榜</h1>
             </div>
             <!-- Tabs -->
             <div class="flex border-t border-slate-100">
@@ -42,96 +54,73 @@
             </div>
         </header>
 
-        <!-- ========== 今日對局 (Calculator) ========== -->
-        <main v-show="currentTab === 'session'" class="px-4 py-4 space-y-4">
-            <!-- Round selector -->
-            <div class="bg-white rounded-2xl p-4 card-shadow">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-lg font-semibold text-slate-800">第 {{ currentRoundIndex + 1 }} 局</h2>
-                    <div class="flex items-center gap-2">
-                        <button v-if="currentRoundIndex > 0" @click="goPrevRound"
-                            class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-lg font-bold">‹</button>
-                        <span class="text-sm text-slate-500">{{ currentRoundIndex + 1 }} / {{ session.rounds.length }}</span>
-                        <button v-if="currentRoundIndex < session.rounds.length - 1" @click="goNextRound"
-                            class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-lg font-bold">›</button>
-                        <button v-if="session.rounds.length < 5" @click="addRound"
-                            class="w-9 h-9 rounded-full bg-indigo-500 text-white flex items-center justify-center text-xl">+</button>
-                    </div>
-                </div>
-                <!-- Cumulative daily P&L -->
-                <div class="bg-slate-50 rounded-xl p-3 mb-4">
-                    <div class="text-xs text-slate-500 mb-1">今日累計 P&L（所有局）</div>
-                    <div class="flex flex-wrap gap-2">
-                        <span v-for="p in cumulativeDailyPnLByPlayer" :key="p.playerId"
-                            class="text-sm px-2 py-1 rounded-full"
-                            :class="pnlClass(p.totalPnl)">
-                            {{ getPlayerName(p.playerId) }}: {{ formatPnl(p.totalPnl) }}
-                        </span>
-                    </div>
-                </div>
+        <!-- ========== 今日對局（與 Google Sheet 相同表格形式）========== -->
+        <main v-show="currentTab === 'session'" class="px-2 py-4">
+            <div class="flex items-center justify-between mb-2 px-1">
+                <h2 class="text-base font-semibold text-slate-800">今日對局</h2>
+                <button v-if="session.rounds.length < 5" @click="addRound"
+                    class="px-3 py-1.5 rounded-lg bg-indigo-500 text-white text-sm font-medium">+ 新增一局</button>
             </div>
-
-            <!-- Player selection & 底數 for current round -->
-            <div class="bg-white rounded-2xl p-4 card-shadow">
-                <h3 class="text-sm font-semibold text-slate-600 mb-3">本局玩家與底數</h3>
-                <p v-if="players.length === 0" class="text-sm text-amber-600 py-2">尚未新增玩家，請先到「玩家管理」新增。</p>
-                <div v-else class="space-y-2">
-                    <div v-for="player in players" :key="player.id"
-                        class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                        <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
-                            <input type="checkbox" :value="player.id" v-model="currentRoundData.selectedPlayerIds"
-                                @change="onPlayerSelectionChange"
-                                class="rounded border-slate-300 text-indigo-600">
-                            <span class="text-slate-800 truncate">{{ player.name }}</span>
-                            <span v-if="!player.isRegular" class="text-xs text-amber-600">一次性</span>
-                        </label>
-                        <div v-if="currentRoundData.selectedPlayerIds.includes(player.id)" class="flex items-center gap-1">
-                            <button type="button" @click="decrementBase(player.id)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold">−</button>
-                            <span class="w-8 text-center font-mono text-slate-800">{{ getBaseForPlayer(player.id) }}</span>
-                            <button type="button" @click="incrementBase(player.id)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold">+</button>
-                        </div>
-                    </div>
-                </div>
-                <p v-if="players.length" class="text-xs text-slate-500 mt-2">本局底數總和: {{ currentRoundDataSumBase }}</p>
+            <p v-if="players.length === 0" class="text-sm text-amber-600 py-2 px-1">尚未新增玩家，請先到「玩家管理」新增。</p>
+            <div v-else class="bg-white rounded-xl card-shadow overflow-x-auto">
+                <table class="sheet-table">
+                    <thead>
+                        <tr>
+                            <th class="sticky-col-name text-left">Daily Summary</th>
+                            <th class="sticky-col-total text-right font-medium" :class="pnlClass(sessionSummaryRow.dailyTotal)">{{ formatPnl(sessionSummaryRow.dailyTotal) }}</th>
+                            <template v-for="(r, ri) in session.rounds" :key="ri">
+                                <th colspan="4" class="round-group text-center">Round {{ ri + 1 }}</th>
+                            </template>
+                        </tr>
+                        <tr>
+                            <th class="sticky-col-name text-left">Player Name</th>
+                            <th class="sticky-col-total text-right">Daily Total</th>
+                            <template v-for="(r, ri) in session.rounds" :key="'h' + ri">
+                                <th class="round-group w-14">底數</th>
+                                <th class="round-group w-20">Total Chips</th>
+                                <th class="round-group w-20">Chips P&L</th>
+                                <th class="round-group w-16">P&L</th>
+                            </template>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="player in players" :key="player.id">
+                            <td class="sticky-col-name font-medium text-slate-800 truncate" :title="player.name">
+                                {{ player.name }}
+                                <span v-if="!player.isRegular" class="text-amber-600 text-xs">(一次性)</span>
+                            </td>
+                            <td class="sticky-col-total text-right font-medium" :class="[pnlClass(getDailyTotalForPlayer(player.id)), pnlIntensityClass(getDailyTotalForPlayer(player.id))]">
+                                {{ formatPnl(getDailyTotalForPlayer(player.id)) }}
+                            </td>
+                            <template v-for="(round, ri) in session.rounds" :key="ri">
+                                <td class="round-group text-center">
+                                    <span class="inline-flex items-center gap-0.5">
+                                        <button type="button" class="base-btn bg-slate-100 text-slate-600 hover:bg-slate-200" @click="setBaseForRound(ri, player.id, getBaseForRound(ri, player.id) - 1)">−</button>
+                                        <span class="w-7 inline-block text-center font-mono">{{ getBaseForRound(ri, player.id) }}</span>
+                                        <button type="button" class="base-btn bg-slate-100 text-slate-600 hover:bg-slate-200" @click="setBaseForRound(ri, player.id, getBaseForRound(ri, player.id) + 1)">+</button>
+                                    </span>
+                                </td>
+                                <td class="round-group">
+                                    <input type="number" step="any" min="0" class="sheet-input w-full max-w-[72px]"
+                                        :value="getChipsForRound(ri, player.id)"
+                                        @input="e => setChipsForRound(ri, player.id, e.target.value)"
+                                        placeholder="0">
+                                </td>
+                                <td class="round-group text-right font-mono text-sm" :class="pnlClass(getChipsPnlForRound(ri, player.id))">
+                                    {{ formatChipsPnl(getChipsPnlForRound(ri, player.id)) }}
+                                </td>
+                                <td class="round-group text-right font-mono font-medium" :class="[pnlClass(getPnlForRound(ri, player.id)), pnlIntensityClass(getPnlForRound(ri, player.id))]">
+                                    {{ formatPnl(getPnlForRound(ri, player.id)) }}
+                                </td>
+                            </template>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-
-            <!-- Chips at game end -->
-            <div class="bg-white rounded-2xl p-4 card-shadow">
-                <h3 class="text-sm font-semibold text-slate-600 mb-3">結算籌碼（本局）</h3>
-                <div class="space-y-2">
-                    <div v-for="pid in currentRoundData.selectedPlayerIds" :key="pid"
-                        class="flex items-center justify-between gap-2">
-                        <label class="text-slate-700 text-sm w-24 truncate">{{ getPlayerName(pid) }}</label>
-                        <input type="number" step="any" min="0"
-                            :value="currentRoundData.chips[pid]"
-                            @input="e => setChips(pid, e.target.value)"
-                            placeholder="籌碼"
-                            class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Round P&L result -->
-            <div class="bg-white rounded-2xl p-4 card-shadow">
-                <h3 class="text-sm font-semibold text-slate-600 mb-3">本局 P&L</h3>
-                <div class="space-y-2">
-                    <div v-for="row in currentRoundPnlRows" :key="row.playerId"
-                        class="flex justify-between items-center text-sm">
-                        <span class="text-slate-700">{{ getPlayerName(row.playerId) }}</span>
-                        <span :class="pnlClass(row.pnl)">{{ formatPnl(row.pnl) }}</span>
-                    </div>
-                </div>
-                <div v-if="currentRoundPnlRows.length" class="mt-3 pt-3 border-t border-slate-100 flex justify-between text-sm">
-                    <span class="text-slate-500">本局 P&L 總和</span>
-                    <span :class="pnlClass(currentRoundPnlSum)">{{ formatPnl(currentRoundPnlSum) }}</span>
-                </div>
-                <p v-if="currentRoundPnlRows.length && Math.abs(currentRoundPnlSum) > 0.01" class="text-xs text-red-600 mt-1">⚠ 總和應為 0，請檢查籌碼或底數</p>
-            </div>
-
-            <!-- Save session -->
+            <p v-if="sessionSummaryRow.dailyTotal != null && Math.abs(sessionSummaryRow.dailyTotal) > 0.01" class="text-xs text-red-600 mt-2 px-1">⚠ Daily Total 應為 0，請檢查籌碼或底數</p>
             <button @click="saveSessionToHistory"
                 :disabled="!canSaveSession"
-                class="w-full py-3 rounded-xl font-medium bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+                class="w-full mt-4 py-3 rounded-xl font-medium bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
                 儲存今日記錄並清空本局
             </button>
         </main>
@@ -258,12 +247,14 @@
         const firebaseConfig = typeof window !== 'undefined' && window.FIREBASE_CONFIG
             ? window.FIREBASE_CONFIG
             : {
-                apiKey: "YOUR_API_KEY",
-                authDomain: "YOUR_PROJECT.firebaseapp.com",
-                projectId: "YOUR_PROJECT_ID",
-                storageBucket: "YOUR_PROJECT.appspot.com",
-                messagingSenderId: "YOUR_SENDER_ID",
-                appId: "YOUR_APP_ID"
+                apiKey: "AIzaSyADK-ow5J5jvHNVbf_Bshda66XEe6wLbYc",
+                authDomain: "restaurant-list-5a09c.firebaseapp.com",
+                databaseURL: "https://restaurant-list-5a09c-default-rtdb.firebaseio.com",
+                projectId: "restaurant-list-5a09c",
+                storageBucket: "restaurant-list-5a09c.firebasestorage.app",
+                messagingSenderId: "427826535489",
+                appId: "1:427826535489:web:6dc763bd3b2e7526cafac0",
+                measurementId: "G-8JHTD2GL0E"
             };
 
         const BASE_UNIT = 32000;
@@ -315,26 +306,12 @@
                 currentRoundData() {
                     return this.session.rounds[this.currentRoundIndex] || { selectedPlayerIds: [], base: {}, chips: {} };
                 },
-                currentRoundDataSumBase() {
-                    let sum = 0;
-                    for (const pid of this.currentRoundData.selectedPlayerIds) {
-                        sum += this.getBaseForPlayer(pid);
+                sessionSummaryRow() {
+                    let dailyTotal = 0;
+                    for (const p of this.players) {
+                        dailyTotal += this.getDailyTotalForPlayer(p.id);
                     }
-                    return sum;
-                },
-                currentRoundPnlRows() {
-                    const rows = [];
-                    for (const pid of this.currentRoundData.selectedPlayerIds) {
-                        const chips = Number(this.currentRoundData.chips[pid]) || 0;
-                        const base = this.getBaseForPlayer(pid);
-                        const chipsPnl = (chips * CHIPS_FACTOR) - (base * BASE_UNIT);
-                        const pnl = chipsPnl / PNL_DIVISOR;
-                        rows.push({ playerId: pid, pnl });
-                    }
-                    return rows;
-                },
-                currentRoundPnlSum() {
-                    return this.currentRoundPnlRows.reduce((s, r) => s + r.pnl, 0);
+                    return { dailyTotal };
                 },
                 cumulativeDailyPnLByPlayer() {
                     const map = new Map();
@@ -415,31 +392,73 @@
                     const p = this.players.find(x => x.id === pid);
                     return p ? p.name : (pid || '');
                 },
-                getBaseForPlayer(pid) {
-                    const b = this.currentRoundData.base?.[pid];
-                    return b != null ? b : 1;
+                getBaseForRound(ri, pid) {
+                    const round = this.session.rounds[ri];
+                    if (!round) return 0;
+                    if (!(round.selectedPlayerIds || []).includes(pid)) return 0;
+                    return round.base?.[pid] ?? 1;
                 },
-                incrementBase(pid) {
-                    const r = this.session.rounds[this.currentRoundIndex];
-                    if (!r.base) r.base = {};
-                    r.base[pid] = (r.base[pid] ?? 1) + 1;
+                setBaseForRound(ri, pid, val) {
+                    const round = this.session.rounds[ri];
+                    if (!round) return;
+                    val = Math.max(0, Math.floor(Number(val) || 0));
+                    if (val === 0) {
+                        round.selectedPlayerIds = (round.selectedPlayerIds || []).filter(id => id !== pid);
+                        if (round.base) delete round.base[pid];
+                        if (round.chips) delete round.chips[pid];
+                    } else {
+                        if (!round.selectedPlayerIds) round.selectedPlayerIds = [];
+                        if (!round.selectedPlayerIds.includes(pid)) round.selectedPlayerIds.push(pid);
+                        if (!round.base) round.base = {};
+                        round.base[pid] = val;
+                    }
                     this.updateSessionRemote();
                     this.saveSessionToLocal();
                 },
-                decrementBase(pid) {
-                    const r = this.session.rounds[this.currentRoundIndex];
-                    if (!r.base) r.base = {};
-                    const cur = r.base[pid] ?? 1;
-                    if (cur > 1) r.base[pid] = cur - 1;
-                    this.updateSessionRemote();
-                    this.saveSessionToLocal();
+                getChipsForRound(ri, pid) {
+                    const round = this.session.rounds[ri];
+                    if (!round || !round.chips) return '';
+                    const v = round.chips[pid];
+                    return v === undefined || v === null ? '' : v;
                 },
-                setChips(pid, val) {
-                    const r = this.session.rounds[this.currentRoundIndex];
-                    if (!r.chips) r.chips = {};
-                    r.chips[pid] = val === '' ? undefined : val;
+                setChipsForRound(ri, pid, val) {
+                    const round = this.session.rounds[ri];
+                    if (!round) return;
+                    if (!round.chips) round.chips = {};
+                    round.chips[pid] = (val === '' || val === null) ? undefined : val;
                     clearTimeout(this._chipsDebounce);
                     this._chipsDebounce = setTimeout(() => { this.updateSessionRemote(); this.saveSessionToLocal(); }, 500);
+                },
+                getChipsPnlForRound(ri, pid) {
+                    const chips = Number(this.getChipsForRound(ri, pid)) || 0;
+                    const base = this.getBaseForRound(ri, pid);
+                    return (chips * CHIPS_FACTOR) - (base * BASE_UNIT);
+                },
+                getPnlForRound(ri, pid) {
+                    return this.getChipsPnlForRound(ri, pid) / PNL_DIVISOR;
+                },
+                getDailyTotalForPlayer(pid) {
+                    let total = 0;
+                    for (let ri = 0; ri < (this.session.rounds || []).length; ri++) {
+                        total += this.getPnlForRound(ri, pid);
+                    }
+                    return total;
+                },
+                formatChipsPnl(n) {
+                    if (n == null || isNaN(n)) return '—';
+                    return String(Math.round(n));
+                },
+                getBaseForPlayer(pid) {
+                    return this.getBaseForRound(this.currentRoundIndex, pid) || 0;
+                },
+                incrementBase(pid) {
+                    this.setBaseForRound(this.currentRoundIndex, pid, this.getBaseForRound(this.currentRoundIndex, pid) + 1);
+                },
+                decrementBase(pid) {
+                    this.setBaseForRound(this.currentRoundIndex, pid, this.getBaseForRound(this.currentRoundIndex, pid) - 1);
+                },
+                setChips(pid, val) {
+                    this.setChipsForRound(this.currentRoundIndex, pid, val);
                 },
                 addRound() {
                     if (this.session.rounds.length >= 5) return;
