@@ -60,12 +60,19 @@
                 <p v-if="players.length === 0" class="text-[var(--muted)] text-sm">尚未新增玩家，請先到「玩家管理」新增。</p>
                 <button v-else @click="sessionStep = 'select'"
                     class="w-full py-4 rounded-xl font-semibold bg-[var(--accent)] text-[var(--bg)] hover:opacity-90 transition-opacity">
-                    開始對局
+                    開始
                 </button>
             </div>
             <!-- Step 2: 選擇玩家（A–Z 排序） -->
             <div v-else-if="sessionStep === 'select'" class="space-y-4">
-                <h2 class="text-sm font-semibold text-[var(--muted)]">選擇今日玩家</h2>
+                <div class="sticky top-[100px] z-10 bg-[var(--bg)] pt-2 pb-3 border-b border-[var(--border)] mb-4">
+                    <div class="flex justify-between items-center px-0" -->
+                        <h2 class="text-sm font-semibold text-[var(--muted)]">選擇今日玩家</h2>
+                        <span class="text-xs font-medium px-2 py-1 rounded-full bg-[var(--accent)]/20 text-[var(--accent)]">
+                            已選 {{ sessionSelectedPlayerIds.length }} 位
+                        </span>
+                    </div>
+                </div>
                 <div class="bg-[var(--card)] rounded-xl border border-[var(--border)] divide-y divide-[var(--border)] overflow-hidden">
                     <label v-for="player in playersSortedAZ" :key="player.id"
                         class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/5 transition-colors">
@@ -85,15 +92,27 @@
             <!-- Step 3: 表格（只顯示當前局，<> 轉頁） -->
             <div v-else class="space-y-4">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <button type="button" @click="goPrevRound" :disabled="currentRoundIndex === 0"
-                            class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center font-bold text-[var(--muted)] disabled:opacity-40">‹</button>
-                        <span class="text-sm font-medium">Round {{ currentRoundIndex + 1 }} / {{ session.rounds.length }}</span>
-                        <button type="button" @click="goNextRound" :disabled="currentRoundIndex >= session.rounds.length - 1"
-                            class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center font-bold text-[var(--muted)] disabled:opacity-40">›</button>
+                    <div class="flex items-center gap-3">
+                        <button type="button" @click="goBackToStep2"
+                            class="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--muted)] text-sm font-medium flex items-center gap-1">
+                            ← 返回
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" @click="goPrevRound" :disabled="currentRoundIndex === 0"
+                                class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center font-bold text-[var(--muted)] disabled:opacity-40">‹</button>
+                            <span class="text-sm font-medium">Round {{ currentRoundIndex + 1 }} / {{ session.rounds.length }}</span>
+                            <button type="button" @click="goNextRound" :disabled="currentRoundIndex >= session.rounds.length - 1"
+                                class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center font-bold text-[var(--muted)] disabled:opacity-40">›</button>
+                        </div>
                     </div>
+                    <div class="flex items-center gap-2">
+                    <button v-if="session.rounds.length > 1" @click="deleteCurrentRound"
+                        class="px-3 py-1.5 rounded-lg border border-[var(--negative)] text-[var(--negative)] text-sm font-medium hover:bg-[var(--negative)]/10">
+                        刪除此局
+                    </button>
                     <button v-if="session.rounds.length < 5" @click="addRound"
-                        class="px-3 py-1.5 rounded-lg bg-[var(--accent)] text-[var(--bg)] text-sm font-medium">+ 新增一局</button>
+                        class="px-3 py-1.5 rounded-lg bg-[var(--accent)] text-[var(--bg)] text-sm font-medium">新增一局</button>
+                </div>
                 </div>
                 <div class="bg-[var(--card)] rounded-xl border border-[var(--border)] overflow-x-auto">
                     <table class="sheet-table">
@@ -113,7 +132,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="player in playersSortedAZ" :key="player.id">
+                            <tr v-for="player in filteredSelectedPlayers" :key="player.id">
                                 <td class="sticky-col-name font-medium truncate" :title="player.name">{{ player.name }}</td>
                                 <td class="sticky-col-total text-right font-medium" :class="[pnlClass(getDailyTotalForPlayer(player.id)), pnlIntensityClass(getDailyTotalForPlayer(player.id))]">
                                     {{ formatPnl(getDailyTotalForPlayer(player.id)) }}
@@ -141,7 +160,7 @@
                         </tbody>
                     </table>
                 </div>
-                <p v-if="sessionSummaryRow.dailyTotal != null && Math.abs(sessionSummaryRow.dailyTotal) > 0.01" class="text-xs text-[var(--negative)]">⚠ Daily Total 應為 0，請檢查籌碼或底數</p>
+                <p v-if="sessionSummaryRow.dailyTotal != null && Math.abs(sessionSummaryRow.dailyTotal) > 0.1" class="text-xs text-[var(--negative)]">⚠ Daily Total 應為 0，請檢查籌碼或底數</p>
                 <button @click="saveSessionToHistory"
                     :disabled="!canSaveSession"
                     class="w-full py-3 rounded-xl font-semibold bg-[var(--accent)] text-[var(--bg)] disabled:opacity-50 disabled:cursor-not-allowed">
@@ -176,20 +195,53 @@
                 <table class="sheet-table">
                     <thead>
                         <tr>
-                            <th class="w-12">排名</th>
-                            <th class="w-14">Active</th>
-                            <th class="min-w-[90px] sticky left-0 bg-[#334155] z-[3]">名稱</th>
-                            <th class="min-w-[80px] text-right">總成績</th>
-                            <th v-for="d in historyDateColumns" :key="d" class="min-w-[72px] text-right">{{ formatDateShort(d) }}</th>
+                            <th colspan="3" class="sticky left-0 z-30 bg-[#1e293b] border-r-2 border-[var(--border)]"></th>
+                            <th v-for="(year, yearIndex) in historyYearColumns" :key="yearIndex" 
+                                :colspan="getYearColumnCount(year)"
+                                class="text-center bg-[#1e293b] border-2 border-[var(--border)] px-3 py-2 text-sm font-semibold text-white">
+                                {{ year }}
+                            </th>
+                        </tr>
+                        <!-- 表頭行 -->
+                        <tr>
+                            <!-- 排名 -->
+                            <th class="w-12 sticky left-0 z-30 bg-[#334155] px-3 py-2 text-sm font-medium border-2 border-[var(--border)] text-white">排名</th>
+                            <!-- 名稱 -->
+                            <th class="min-w-[90px] sticky left-12 z-30 bg-[#334155] px-3 py-2 text-sm font-medium border-2 border-[var(--border)] text-white">名稱</th>
+                            <!-- 總成績 -->
+                            <th class="min-w-[80px] sticky left-[calc(90px+3rem)] z-30 bg-[#334155] px-3 py-2 text-sm font-medium border-2 border-[var(--border)] text-white text-right">總成績</th>
+                            <!-- 日期欄位 -->
+                            <th v-for="d in historyDateColumns" :key="d" 
+                                class="min-w-[72px] px-3 py-2 text-sm font-medium border-2 border-[var(--border)] text-white text-right">
+                                {{ formatDateShort(d) }}
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="(row, idx) in historyTableRows" :key="row.playerId">
-                            <td class="text-[var(--muted)]">{{ idx + 1 }}</td>
-                            <td class="text-center">{{ row.isActive ? 'Y' : 'N' }}</td>
-                            <td class="font-medium sticky left-0 bg-[var(--card)] z-[2]" :style="{ boxShadow: '2px 0 8px rgba(0,0,0,0.2)' }">{{ row.playerName }}</td>
-                            <td class="text-right font-medium" :class="[pnlClass(row.totalPnl), pnlIntensityClass(row.totalPnl)]">{{ formatPnl(row.totalPnl) }}</td>
-                            <td v-for="d in historyDateColumns" :key="d" class="text-right font-mono text-sm" :class="row.byDate[d] != null ? pnlClass(row.byDate[d]) : ''">{{ row.byDate[d] != null ? formatPnl(row.byDate[d]) : '' }}</td>
+                            <!-- 排名 -->
+                            <td class="sticky left-0 z-20 bg-[var(--card)] px-3 py-2 border-2 border-[var(--border)]">
+                                <div class="text-[var(--muted)] text-center text-sm">{{ idx + 1 }}</div>
+                            </td>
+                            
+                            <!-- 名稱 -->
+                            <td class="sticky left-12 z-20 bg-[var(--card)] px-3 py-2 border-2 border-[var(--border)] font-medium text-sm"
+                                :class="{ 'shadow-[3px_0_8px_rgba(0,0,0,0.3)]': true }">
+                                {{ row.playerName }}
+                            </td>
+                            
+                            <!-- 總成績 -->
+                            <td class="sticky left-[calc(90px+3rem)] z-20 bg-[var(--card)] px-3 py-2 border-2 border-[var(--border)] text-right font-medium text-sm"
+                                :class="[pnlClass(row.totalPnl), pnlIntensityClass(row.totalPnl), { 'shadow-[3px_0_8px_rgba(0,0,0,0.3)]': true }]">
+                                {{ formatPnl(row.totalPnl) }}
+                            </td>
+                            
+                            <!-- 日期欄位 -->
+                            <td v-for="d in historyDateColumns" :key="d" 
+                                class="px-3 py-2 text-sm border-2 border-[var(--border)] text-right font-mono"
+                                :class="row.byDate[d] != null ? pnlClass(row.byDate[d]) : ''">
+                                {{ row.byDate[d] != null ? formatPnl(row.byDate[d]) : '' }}
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -348,16 +400,26 @@
                 },
                 canSaveSession() {
                     if (this.session.rounds.length === 0) return false;
-                    let hasAnyChips = false;
-                    for (const r of this.session.rounds) {
-                        for (const pid of r.selectedPlayerIds || []) {
-                            const chips = Number(r.chips?.[pid]);
-                            if (chips != null && !isNaN(chips)) hasAnyChips = true;
+                    const currentRound = this.session.rounds[this.currentRoundIndex];
+                    if (!currentRound.selectedPlayerIds || currentRound.selectedPlayerIds.length === 0) return false;
+    
+                    let allPlayersHaveChips = true;
+                    let totalChipsSum = 0;
+                    
+                    for (const pid of currentRound.selectedPlayerIds) {
+                        const chips = Number(currentRound.chips?.[pid]);
+                        // 检查是否为有效数字（不是NaN且大于0）
+                        if (isNaN(chips) || chips <= 0) {
+                            allPlayersHaveChips = false;
+                            break;
                         }
+                        totalChipsSum += chips;
                     }
-                    if (!hasAnyChips) return false;
+                    
+                    if (!allPlayersHaveChips) return false;
+
                     const sum = this.cumulativeDailyPnLByPlayer.reduce((s, p) => s + p.totalPnl, 0);
-                    return Math.abs(sum) < 0.02;
+                    return Math.abs(sum) < 0.1;
                 },
                 historyYears() {
                     const set = new Set();
@@ -407,9 +469,55 @@
                         row.byDate[record.date] = pnl;
                     }
                     return Array.from(byPlayer.values()).sort((a, b) => b.totalPnl - a.totalPnl);
-                }
+                },
+                filteredSelectedPlayers() {
+                    const currentRound = this.session.rounds[this.currentRoundIndex];
+                    if (!currentRound || !currentRound.selectedPlayerIds) return [];
+                    
+                    return this.playersSortedAZ.filter(player => 
+                        currentRound.selectedPlayerIds.includes(player.id)
+                    );
+                },
+                historyYearColumns() {
+                    const years = [];
+                    let currentYear = null;
+                    
+                    this.historyDateColumns.forEach(dateStr => {
+                        const year = dateStr.split('-')[0]; // 假設日期格式為 "2024-03-15"
+                        if (year !== currentYear) {
+                            years.push(year);
+                            currentYear = year;
+                        }
+                    });
+                    
+                    return years;
+                },
+                getYearColumnCount() {
+                    return (year) => this.historyDateColumns.filter(date => date.startsWith(year)).length;
+                },
             },
             methods: {
+                goBackToStep2() {
+                    this.sessionStep = 'select';
+                },
+                deleteCurrentRound() {
+                    if (this.session.rounds.length <= 1) return;
+                    
+                    if (confirm(`確定要刪除 Round ${this.currentRoundIndex + 1} 嗎？`)) {
+                        // 删除当前局
+                        this.session.rounds.splice(this.currentRoundIndex, 1);
+                        
+                        // 调整当前局索引
+                        if (this.currentRoundIndex >= this.session.rounds.length) {
+                            this.currentRoundIndex = Math.max(0, this.session.rounds.length - 1);
+                        }
+                        
+                        // 如果删除后只剩一局，重置索引
+                        if (this.session.rounds.length === 1) {
+                            this.currentRoundIndex = 0;
+                        }
+                    }
+                },
                 getPlayerName(pid) {
                     const p = this.players.find(x => x.id === pid);
                     return p ? p.name : (pid || '');
@@ -518,7 +626,7 @@
                 },
                 formatPnl(n) {
                     if (n == null || isNaN(n)) return '—';
-                    return (Math.round(n * 100) / 100).toFixed(2);
+                    return (Math.round(n * 100) / 100).toFixed(1);
                 },
                 pnlClass(pnl) {
                     if (pnl == null || isNaN(pnl)) return 'pnl-zero';
